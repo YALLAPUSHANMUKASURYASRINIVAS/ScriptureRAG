@@ -68,16 +68,22 @@ def load_rag_pipeline():
     from src.llm_engine import ScriptureLLMEngine
     from src.validation import ScriptureOutputGuardrail
 
+    vector_db = ScriptureVectorDB()
+
+    # Auto-build ChromaDB from preprocessed chunks if empty (first run on cloud)
+    if vector_db.collection.count() == 0:
+        vector_db.index_dataset(batch_size=64)
+
     return {
         "guardrail": MahapuranaGuardrail,
         "processor": ScriptureQueryProcessor,
-        "vector_db": ScriptureVectorDB(),
+        "vector_db": vector_db,
         "reranker": ScriptureReranker(),
         "llm": ScriptureLLMEngine(),
         "validator": ScriptureOutputGuardrail()
     }
 
-with st.spinner("Loading..."):
+with st.spinner("🕉️ Initializing ScriptureRAG knowledge base... (first run may take 2-3 minutes)"):
     pipeline = load_rag_pipeline()
 
 # Session State for Messages
