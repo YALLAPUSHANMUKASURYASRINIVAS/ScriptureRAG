@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Data - ignore everything
+data/*
+
+# Allow ONLY this data file
+!data/preprocessed_master_chunks.json
+
+# Databases / generated files
+*.db
+*.sqlite
+*.sqlite3
+
+# Large datasets / PDFs
+data/mlbd_pdfs/
+data/chroma_db/
+
+# Environment variables / secrets
+.env
+.env.local
+
+# IDE settings
+.vscode/
+.idea/
+
+# Streamlit cache
+.streamlit/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Project temporary file
+all_codes_in_project.txt
