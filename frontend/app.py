@@ -68,7 +68,20 @@ def load_rag_pipeline():
     from src.llm_engine import ScriptureLLMEngine
     from src.validation import ScriptureOutputGuardrail
 
-    vector_db = ScriptureVectorDB()
+    # On Streamlit Cloud, data/ is read-only. Use /tmp/ for writable chroma_db.
+    import os
+    default_chroma = "data/chroma_db"
+    try:
+        os.makedirs(default_chroma, exist_ok=True)
+        test_file = os.path.join(default_chroma, ".write_test")
+        with open(test_file, "w") as f:
+            f.write("ok")
+        os.remove(test_file)
+        chroma_dir = default_chroma
+    except OSError:
+        chroma_dir = "/tmp/chroma_db"
+
+    vector_db = ScriptureVectorDB(persist_dir=chroma_dir)
 
     # Auto-build ChromaDB from preprocessed chunks if empty (first run on cloud)
     if vector_db.collection.count() == 0:
@@ -85,6 +98,7 @@ def load_rag_pipeline():
 
 with st.spinner("🕉️ Initializing ScriptureRAG knowledge base... (first run may take 2-3 minutes)"):
     pipeline = load_rag_pipeline()
+
 
 # Session State for Messages
 if "messages" not in st.session_state:
