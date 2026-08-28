@@ -13,17 +13,13 @@ ENV/
 # Data - ignore everything
 data/*
 
-# Allow ONLY this data file
+# Allow ONLY these data files/folders
 !data/preprocessed_master_chunks.json
-
-# Databases / generated files
-*.db
-*.sqlite
-*.sqlite3
+!data/chroma_db/
+!data/chroma_db/**
 
 # Large datasets / PDFs
 data/mlbd_pdfs/
-data/chroma_db/
 
 # Environment variables / secrets
 .env

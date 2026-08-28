@@ -81,6 +81,7 @@ def load_rag_pipeline():
     except OSError:
         chroma_dir = "/tmp/chroma_db"
 
+
     vector_db = ScriptureVectorDB(persist_dir=chroma_dir)
 
     # Auto-build ChromaDB from preprocessed chunks if empty (first run on cloud)
