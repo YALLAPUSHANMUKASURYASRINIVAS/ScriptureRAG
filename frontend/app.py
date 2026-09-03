@@ -67,19 +67,28 @@ def load_rag_pipeline():
     default_chroma = "data/chroma_db"
     tmp_chroma = "/tmp/chroma_db"
 
-    # If Git LFS database exists, copy it to /tmp for write access (takes ~2s)
-    if os.path.exists(default_chroma) and not os.path.exists(tmp_chroma):
-        try:
-            shutil.copytree(default_chroma, tmp_chroma)
-            chroma_dir = tmp_chroma
-        except Exception:
-            chroma_dir = default_chroma
-    elif os.path.exists(tmp_chroma):
-        chroma_dir = tmp_chroma
+    # Copy Git LFS database to /tmp if not present or if /tmp/chroma_db is empty
+    if os.path.exists(default_chroma):
+        if not os.path.exists(tmp_chroma):
+            try:
+                shutil.copytree(default_chroma, tmp_chroma)
+            except Exception:
+                pass
+        chroma_dir = tmp_chroma if os.path.exists(tmp_chroma) else default_chroma
     else:
         chroma_dir = default_chroma
 
     vector_db = ScriptureVectorDB(persist_dir=chroma_dir)
+
+    # If /tmp/chroma_db had 0 records, force overwrite with Git LFS data/chroma_db
+    if vector_db.collection.count() == 0 and os.path.exists(default_chroma):
+        try:
+            if os.path.exists(tmp_chroma):
+                shutil.rmtree(tmp_chroma)
+            shutil.copytree(default_chroma, tmp_chroma)
+            vector_db = ScriptureVectorDB(persist_dir=tmp_chroma)
+        except Exception:
+            pass
 
     return {
         "guardrail": MahapuranaGuardrail,
