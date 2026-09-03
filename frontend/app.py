@@ -63,23 +63,23 @@ def load_rag_pipeline():
     from src.llm_engine import ScriptureLLMEngine
     from src.validation import ScriptureOutputGuardrail
 
-    # On Streamlit Cloud, data/ is read-only. Use /tmp/ for writable chroma_db.
+    import shutil
     default_chroma = "data/chroma_db"
-    try:
-        os.makedirs(default_chroma, exist_ok=True)
-        test_file = os.path.join(default_chroma, ".write_test")
-        with open(test_file, "w") as f:
-            f.write("ok")
-        os.remove(test_file)
+    tmp_chroma = "/tmp/chroma_db"
+
+    # If Git LFS database exists, copy it to /tmp for write access (takes ~2s)
+    if os.path.exists(default_chroma) and not os.path.exists(tmp_chroma):
+        try:
+            shutil.copytree(default_chroma, tmp_chroma)
+            chroma_dir = tmp_chroma
+        except Exception:
+            chroma_dir = default_chroma
+    elif os.path.exists(tmp_chroma):
+        chroma_dir = tmp_chroma
+    else:
         chroma_dir = default_chroma
-    except OSError:
-        chroma_dir = "/tmp/chroma_db"
 
     vector_db = ScriptureVectorDB(persist_dir=chroma_dir)
-
-    # Auto-build ChromaDB from preprocessed chunks if empty (first run on cloud)
-    if vector_db.collection.count() == 0:
-        vector_db.index_dataset(batch_size=64)
 
     return {
         "guardrail": MahapuranaGuardrail,
