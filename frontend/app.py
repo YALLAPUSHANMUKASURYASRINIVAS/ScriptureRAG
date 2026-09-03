@@ -63,32 +63,24 @@ def load_rag_pipeline():
     from src.llm_engine import ScriptureLLMEngine
     from src.validation import ScriptureOutputGuardrail
 
-    import shutil
-    default_chroma = "data/chroma_db"
     tmp_chroma = "/tmp/chroma_db"
+    parts_dir = "data/chroma_db_parts"
+    sqlite_target = os.path.join(tmp_chroma, "chroma.sqlite3")
 
-    # Copy Git LFS database to /tmp if not present or if /tmp/chroma_db is empty
-    if os.path.exists(default_chroma):
-        if not os.path.exists(tmp_chroma):
-            try:
-                shutil.copytree(default_chroma, tmp_chroma)
-            except Exception:
-                pass
-        chroma_dir = tmp_chroma if os.path.exists(tmp_chroma) else default_chroma
-    else:
-        chroma_dir = default_chroma
+    # If /tmp/chroma_db is missing or empty, stitch split parts together
+    if os.path.exists(parts_dir) and (not os.path.exists(sqlite_target) or os.path.getsize(sqlite_target) < 1000000):
+        os.makedirs(tmp_chroma, exist_ok=True)
+        print("[VectorDB] Reconstructing ChromaDB from split parts...")
+        part_files = sorted([f for f in os.listdir(parts_dir) if f.startswith("part_")])
+        with open(sqlite_target, "wb") as outfile:
+            for part in part_files:
+                part_path = os.path.join(parts_dir, part)
+                with open(part_path, "rb") as infile:
+                    outfile.write(infile.read())
+        print(f"[VectorDB] Reconstructed database size: {os.path.getsize(sqlite_target)/(1024*1024):.2f} MB")
 
+    chroma_dir = tmp_chroma if os.path.exists(tmp_chroma) else "data/chroma_db"
     vector_db = ScriptureVectorDB(persist_dir=chroma_dir)
-
-    # If /tmp/chroma_db had 0 records, force overwrite with Git LFS data/chroma_db
-    if vector_db.collection.count() == 0 and os.path.exists(default_chroma):
-        try:
-            if os.path.exists(tmp_chroma):
-                shutil.rmtree(tmp_chroma)
-            shutil.copytree(default_chroma, tmp_chroma)
-            vector_db = ScriptureVectorDB(persist_dir=tmp_chroma)
-        except Exception:
-            pass
 
     return {
         "guardrail": MahapuranaGuardrail,
