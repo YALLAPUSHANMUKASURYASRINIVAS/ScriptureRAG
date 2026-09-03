@@ -80,7 +80,7 @@ class ScriptureLLMEngine:
     Enforces verse citations and zero-hallucination guardrails.
     """
 
-    DEFAULT_MODEL = "gemini-3.6-flash"
+    DEFAULT_MODEL = "gemini-1.5-flash"
 
     def __init__(self, model_name: str = DEFAULT_MODEL):
         self.api_key = get_gemini_api_key()
@@ -93,12 +93,10 @@ class ScriptureLLMEngine:
                 
                 # Active production candidates in priority order
                 preferred_models = [
-                    self.model_name,
-                    "gemini-3.6-flash",
-                    "gemini-3.5-flash",
-                    "gemini-2.5-flash-lite",
-                    "gemini-pro-latest",
-                    "gemini-flash-latest"
+                    "gemini-1.5-flash",
+                    "gemini-1.5-pro",
+                    "gemini-2.0-flash-exp",
+                    "gemini-pro"
                 ]
 
                 # Handshake test to find the working model
@@ -114,7 +112,7 @@ class ScriptureLLMEngine:
                         continue
 
                 if not self.model:
-                    self.model_name = "gemini-3.6-flash"
+                    self.model_name = "gemini-1.5-flash"
                     self.model = genai.GenerativeModel(self.model_name)
                     print(f"[LLMEngine] Connected to default model: {self.model_name}")
 
@@ -182,7 +180,7 @@ Please synthesize an authentic, citation-backed response to the user's query bas
 
         # Call Gemini if available
         if self.model:
-            for attempt_model in [self.model_name, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-pro-latest"]:
+            for attempt_model in [self.model_name, "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]:
                 try:
                     active_m = genai.GenerativeModel(attempt_model)
                     full_prompt = f"{self._build_system_prompt()}\n\n{user_prompt}"

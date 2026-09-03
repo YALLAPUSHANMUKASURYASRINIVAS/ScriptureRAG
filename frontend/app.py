@@ -188,48 +188,53 @@ if user_query:
     # 2. Assistant Response
     with st.chat_message("assistant", avatar="🕉️"):
         with st.spinner("Thinking..."):
-            # Stage 1: Guardrail Check
-            guard_res = pipeline["guardrail"].check_query(user_query)
+            try:
+                # Stage 1: Guardrail Check
+                guard_res = pipeline["guardrail"].check_query(user_query)
 
-            if not guard_res.allowed:
-                blocked_msg = f"I am dedicated exclusively to providing spiritual and philosophical guidance from the 18 Ashtadasha Mahapuranas. I cannot fulfill requests outside of Vedic scriptures ({guard_res.reason})."
-                st.markdown(blocked_msg)
-                st.session_state.messages.append({"role": "assistant", "content": blocked_msg})
-            else:
-                # Stage 2: Query Expansion
-                expanded = pipeline["processor"].process_query(user_query)
+                if not guard_res.allowed:
+                    blocked_msg = f"I am dedicated exclusively to providing spiritual and philosophical guidance from the 18 Ashtadasha Mahapuranas. I cannot fulfill requests outside of Vedic scriptures ({guard_res.reason})."
+                    st.markdown(blocked_msg)
+                    st.session_state.messages.append({"role": "assistant", "content": blocked_msg})
+                else:
+                    # Stage 2: Query Expansion
+                    expanded = pipeline["processor"].process_query(user_query)
 
-                # Stage 3: Vector Search
-                candidates = pipeline["vector_db"].search(
-                    query=expanded.expanded_query,
-                    top_k=6
-                )
+                    # Stage 3: Vector Search
+                    candidates = pipeline["vector_db"].search(
+                        query=expanded.expanded_query,
+                        top_k=6
+                    )
 
-                # Stage 4: Cross-Encoder Re-Ranking
-                top_passages = pipeline["reranker"].rerank(
-                    query=user_query,
-                    retrieved_docs=candidates,
-                    top_k=3
-                )
+                    # Stage 4: Cross-Encoder Re-Ranking
+                    top_passages = pipeline["reranker"].rerank(
+                        query=user_query,
+                        retrieved_docs=candidates,
+                        top_k=3
+                    )
 
-                # Stage 5: Grounded LLM Generation
-                llm_res = pipeline["llm"].generate_response(
-                    query=user_query,
-                    retrieved_passages=top_passages
-                )
+                    # Stage 5: Grounded LLM Generation
+                    llm_res = pipeline["llm"].generate_response(
+                        query=user_query,
+                        retrieved_passages=top_passages
+                    )
 
-                # Stage 6: Output Guardrail Validation
-                val_report = pipeline["validator"].validate_output(
-                    query=user_query,
-                    response_text=llm_res["response_text"],
-                    retrieved_passages=top_passages
-                )
+                    # Stage 6: Output Guardrail Validation
+                    val_report = pipeline["validator"].validate_output(
+                        query=user_query,
+                        response_text=llm_res["response_text"],
+                        retrieved_passages=top_passages
+                    )
 
-                # Output Response
-                st.markdown(val_report.sanitized_response)
+                    # Output Response
+                    st.markdown(val_report.sanitized_response)
 
-                # Save to History
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": val_report.sanitized_response
-                })
+                    # Save to History
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": val_report.sanitized_response
+                    })
+            except Exception as err:
+                err_msg = f"An error occurred while processing your query: `{str(err)}`"
+                st.error(err_msg)
+                st.session_state.messages.append({"role": "assistant", "content": err_msg})
