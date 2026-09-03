@@ -30,11 +30,6 @@ st.markdown("""
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     
-    /* Hide Default Header and Footer */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    
     /* Centered Title */
     .hero-title {
         text-align: center;
@@ -69,7 +64,6 @@ def load_rag_pipeline():
     from src.validation import ScriptureOutputGuardrail
 
     # On Streamlit Cloud, data/ is read-only. Use /tmp/ for writable chroma_db.
-    import os
     default_chroma = "data/chroma_db"
     try:
         os.makedirs(default_chroma, exist_ok=True)
@@ -80,7 +74,6 @@ def load_rag_pipeline():
         chroma_dir = default_chroma
     except OSError:
         chroma_dir = "/tmp/chroma_db"
-
 
     vector_db = ScriptureVectorDB(persist_dir=chroma_dir)
 
@@ -99,7 +92,6 @@ def load_rag_pipeline():
 
 with st.spinner("🕉️ Initializing ScriptureRAG knowledge base... (first run may take 2-3 minutes)"):
     pipeline = load_rag_pipeline()
-
 
 # Session State for Messages
 if "messages" not in st.session_state:
@@ -135,7 +127,7 @@ function startVoiceInput() {
     recognition.interimResults = false;
     
     const micBtn = document.getElementById("mic-btn");
-    micBtn.innerText = "🔴 Listening...";
+    micBtn.innerText = "🎙️ Listening...";
     
     recognition.onresult = function(event) {
         const transcript = event.results[0][0].transcript;
@@ -240,6 +232,3 @@ if user_query:
                     "role": "assistant",
                     "content": val_report.sanitized_response
                 })
-
-
-
