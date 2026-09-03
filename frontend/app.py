@@ -118,44 +118,53 @@ for msg in st.session_state.messages:
 components.html("""
 <script>
 function startVoiceInput() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-        alert("Speech Recognition is not supported in this browser. Please use Chrome or Edge.");
-        return;
-    }
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'en-US';
-    recognition.interimResults = false;
-    
-    const micBtn = document.getElementById("mic-btn");
-    micBtn.innerText = "🎙️ Listening...";
-    
-    recognition.onresult = function(event) {
-        const transcript = event.results[0][0].transcript;
-        micBtn.innerText = "🎙️ Speak Question";
-        
-        // Find Streamlit's chat input textarea
-        const parentDoc = window.parent.document;
-        const chatInput = parentDoc.querySelector("textarea[data-testid='stChatInputTextArea']");
-        if (chatInput) {
-            chatInput.value = transcript;
-            chatInput.dispatchEvent(new Event('input', { bubbles: true }));
-            const submitBtn = parentDoc.querySelector("button[data-testid='stChatInputSubmitButton']");
-            if (submitBtn) {
-                setTimeout(() => submitBtn.click(), 300);
-            }
+    try {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("Speech Recognition is not supported in this browser. Please use Chrome or Edge.");
+            return;
         }
-    };
-    
-    recognition.onerror = function() {
-        micBtn.innerText = "🎙️ Speak Question";
-    };
-    
-    recognition.onend = function() {
-        micBtn.innerText = "🎙️ Speak Question";
-    };
-    
-    recognition.start();
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        
+        const micBtn = document.getElementById("mic-btn");
+        if (micBtn) micBtn.innerText = "🎙️ Listening...";
+        
+        recognition.onresult = function(event) {
+            try {
+                const transcript = event.results[0][0].transcript;
+                if (micBtn) micBtn.innerText = "🎙️ Speak Question";
+                
+                const parentDoc = window.parent.document;
+                if (parentDoc) {
+                    const chatInput = parentDoc.querySelector("textarea[data-testid='stChatInputTextArea']");
+                    if (chatInput) {
+                        chatInput.value = transcript;
+                        chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        const submitBtn = parentDoc.querySelector("button[data-testid='stChatInputSubmitButton']");
+                        if (submitBtn) {
+                            setTimeout(() => submitBtn.click(), 300);
+                        }
+                    }
+                }
+            } catch(err) {
+                console.log("Cross-origin speech handling:", err);
+            }
+        };
+        
+        recognition.onerror = function() {
+            if (micBtn) micBtn.innerText = "🎙️ Speak Question";
+        };
+        
+        recognition.onend = function() {
+            if (micBtn) micBtn.innerText = "🎙️ Speak Question";
+        };
+        
+        recognition.start();
+    } catch(e) {
+        console.log("Voice input initialization:", e);
+    }
 }
 </script>
 <div style="display: flex; justify-content: center; margin-bottom: 8px;">
