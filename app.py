@@ -97,10 +97,22 @@ with st.spinner("🕉️ Initializing ScriptureRAG knowledge base..."):
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Sidebar for New Chat
+# Sidebar for Controls
 with st.sidebar:
     st.markdown("### 🕉️ ScriptureRAG")
     st.markdown("Vedic wisdom grounded in the 18 Ashtadasha Mahapuranas.")
+    
+    st.markdown("---")
+    st.markdown("#### 📏 Answer Length")
+    response_mode = st.radio(
+        "Choose answer depth:",
+        options=["Short (Concise Summary)", "Detailed (Full Counsel & Evidence)"],
+        index=0,
+        help="Select whether you prefer a quick summary or an in-depth spiritual explanation."
+    )
+    is_short = "Short" in response_mode
+
+    st.markdown("---")
     if st.button("➕ New Chat", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
@@ -179,7 +191,8 @@ if user_query:
                     # Stage 5: Grounded LLM Generation
                     llm_res = pipeline["llm"].generate_response(
                         query=user_query,
-                        retrieved_passages=top_passages
+                        retrieved_passages=top_passages,
+                        is_short=is_short
                     )
 
                     # Stage 6: Output Guardrail Validation

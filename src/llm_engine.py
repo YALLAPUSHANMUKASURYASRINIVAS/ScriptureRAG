@@ -156,10 +156,12 @@ YOUR CORE MANDATES:
     def generate_response(
         self,
         query: str,
-        retrieved_passages: List[Dict[str, Any]]
+        retrieved_passages: List[Dict[str, Any]],
+        is_short: bool = False
     ) -> Dict[str, Any]:
         """
         Generates grounded LLM response with citations.
+        Supports both short concise summaries and detailed full counsel.
         """
         if not retrieved_passages:
             return {
@@ -179,13 +181,28 @@ YOUR CORE MANDATES:
         # Build context block
         context_str = self._format_context(retrieved_passages)
 
+        if is_short:
+            length_instruction = (
+                "STYLE INSTRUCTION: Provide a SHORT, CONCISE answer (2-3 concise paragraphs or bullet points). "
+                "Explain the core essence clearly and directly. Include brief scripture citations in brackets."
+            )
+            max_tokens = 600
+        else:
+            length_instruction = (
+                "STYLE INSTRUCTION: Provide a DETAILED, COMPREHENSIVE spiritual counsel structured in 3 sections: "
+                "(1) Direct Counsel, (2) Puranic Evidence with citations, (3) Ethical / Dharmic Principle."
+            )
+            max_tokens = 2048
+
         user_prompt = f"""USER QUERY:
 {query}
+
+{length_instruction}
 
 RETRIEVED MAHAPURANA CONTEXT PASSAGES:
 {context_str}
 
-Please synthesize an authentic, citation-backed response to the user's query based on the scripture passages above:"""
+Please synthesize an authentic, citation-backed response based on the scripture passages above:"""
 
         # Call Gemini if available
         if self.model:
@@ -195,7 +212,7 @@ Please synthesize an authentic, citation-backed response to the user's query bas
                     full_prompt = f"{self._build_system_prompt()}\n\n{user_prompt}"
                     response = active_m.generate_content(
                         full_prompt,
-                        generation_config={"temperature": 0.2, "max_output_tokens": 2048}
+                        generation_config={"temperature": 0.2, "max_output_tokens": max_tokens}
                     )
                     if response and response.text:
                         return {
@@ -211,15 +228,24 @@ Please synthesize an authentic, citation-backed response to the user's query bas
         p1 = self._clean_ocr(retrieved_passages[0].get('text_content', ''))
         p2 = self._clean_ocr(retrieved_passages[1].get('text_content', '')) if len(retrieved_passages) > 1 else ""
         
-        fallback_text = (
-            f"### Authentic Puranic Counsel\n\n"
-            f"Based on the canonical teachings preserved in **{', '.join(citations[:2])}**:\n\n"
-            f"1. **Core Scripture Teaching:**\n{p1.strip()}\n\n"
-        )
-        if p2:
-            fallback_text += f"2. **Further Scriptural Context:**\n{p2.strip()}\n\n"
-        
-        fallback_text += f"**Citations:** {', '.join(citations)}"
+        if is_short:
+            short_p1 = ". ".join(p1.split(". ")[:2]).strip()
+            if short_p1 and not short_p1.endswith("."):
+                short_p1 += "."
+            fallback_text = (
+                f"### Concise Puranic Summary\n\n"
+                f"{short_p1}\n\n"
+                f"**Citations:** {', '.join(citations[:2])}"
+            )
+        else:
+            fallback_text = (
+                f"### Authentic Puranic Counsel\n\n"
+                f"Based on the canonical teachings preserved in **{', '.join(citations[:2])}**:\n\n"
+                f"1. **Core Scripture Teaching:**\n{p1.strip()}\n\n"
+            )
+            if p2:
+                fallback_text += f"2. **Further Scriptural Context:**\n{p2.strip()}\n\n"
+            fallback_text += f"**Citations:** {', '.join(citations)}"
         
         return {
             "response_text": fallback_text,
