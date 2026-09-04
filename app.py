@@ -128,16 +128,40 @@ if user_query:
     with st.chat_message("assistant", avatar="🕉️"):
         with st.spinner("Consulting sacred Mahapuranas..."):
             try:
-                # Stage 1: Guardrail Check
-                guard_res = pipeline["guardrail"].check_query(user_query)
+                import re
+                q_clean = user_query.strip().lower()
 
-                if not guard_res.allowed:
-                    blocked_msg = f"I am dedicated exclusively to providing spiritual and philosophical guidance from the 18 Ashtadasha Mahapuranas. I cannot fulfill requests outside of Vedic scriptures ({guard_res.reason})."
-                    st.markdown(blocked_msg)
-                    st.session_state.messages.append({"role": "assistant", "content": blocked_msg})
+                # Handle Greetings & Introductions naturally
+                name_match = re.search(r'\b(?:my name is|my name|i am|call me)\s+([a-zA-Z]+)', user_query, re.IGNORECASE)
+                if name_match and len(q_clean.split()) <= 5:
+                    user_name = name_match.group(1).capitalize()
+                    greeting_resp = (
+                        f"Namaste **{user_name}**! 🙏\n\n"
+                        f"I am **ScriptureRAG**, your AI spiritual guide grounded in the 18 Ashtadasha Mahapuranas. "
+                        f"How may I assist your inquiries into dharma, philosophy, or the sacred Puranas today?"
+                    )
+                    st.markdown(greeting_resp)
+                    st.session_state.messages.append({"role": "assistant", "content": greeting_resp})
+                elif q_clean in ["hi", "hello", "hey", "namaste", "pranam", "who are you", "what can you do"]:
+                    greeting_resp = (
+                        "Namaste! 🙏\n\n"
+                        "I am **ScriptureRAG**, an authentic AI conversational counselor for the 18 Ashtadasha Mahapuranas "
+                        "(including the Vishnu, Bhagavata, Shiva, Agni, Garuda, and Padma Puranas).\n\n"
+                        "Feel free to ask about spiritual duties, stories of deities, or philosophical reflections. Where shall we begin?"
+                    )
+                    st.markdown(greeting_resp)
+                    st.session_state.messages.append({"role": "assistant", "content": greeting_resp})
                 else:
-                    # Stage 2: Query Expansion
-                    expanded = pipeline["processor"].process_query(user_query)
+                    # Stage 1: Guardrail Check
+                    guard_res = pipeline["guardrail"].check_query(user_query)
+
+                    if not guard_res.allowed:
+                        blocked_msg = f"I am dedicated exclusively to providing spiritual and philosophical guidance from the 18 Ashtadasha Mahapuranas. I cannot fulfill requests outside of Vedic scriptures ({guard_res.reason})."
+                        st.markdown(blocked_msg)
+                        st.session_state.messages.append({"role": "assistant", "content": blocked_msg})
+                    else:
+                        # Stage 2: Query Expansion
+                        expanded = pipeline["processor"].process_query(user_query)
 
                     # Stage 3: Vector Search (across all 10,582 chunks)
                     candidates = pipeline["vector_db"].search(

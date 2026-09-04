@@ -80,7 +80,7 @@ class ScriptureLLMEngine:
     Enforces verse citations and zero-hallucination guardrails.
     """
 
-    DEFAULT_MODEL = "gemini-1.5-flash"
+    DEFAULT_MODEL = "models/gemini-3.6-flash"
 
     def __init__(self, model_name: str = DEFAULT_MODEL):
         self.api_key = get_gemini_api_key()
@@ -93,10 +93,11 @@ class ScriptureLLMEngine:
                 
                 # Active production candidates in priority order
                 preferred_models = [
-                    "gemini-1.5-flash",
-                    "gemini-1.5-pro",
-                    "gemini-2.0-flash-exp",
-                    "gemini-pro"
+                    "models/gemini-3.6-flash",
+                    "gemini-3.6-flash",
+                    "models/gemini-flash-latest",
+                    "gemini-flash-latest",
+                    "models/gemini-pro-latest"
                 ]
 
                 # Handshake test to find the working model
@@ -112,7 +113,7 @@ class ScriptureLLMEngine:
                         continue
 
                 if not self.model:
-                    self.model_name = "gemini-1.5-flash"
+                    self.model_name = "models/gemini-3.6-flash"
                     self.model = genai.GenerativeModel(self.model_name)
                     print(f"[LLMEngine] Connected to default model: {self.model_name}")
 
@@ -120,6 +121,16 @@ class ScriptureLLMEngine:
                 print(f"[LLMEngine] Warning: Gemini initialization failed ({e})")
         else:
             print("[LLMEngine] Running in fallback mode (Gemini API key not configured).")
+
+    def _clean_ocr(self, text: str) -> str:
+        """Strips corrupted Cyrillic/Russian OCR characters from scanned Sanskrit PDFs."""
+        import re
+        # Remove non-ASCII/Cyrillic garbled characters
+        cleaned = re.sub(r'[\u0400-\u04FF\u0500-\u052F\u2DE0-\u2DFF\uA640-\uA69F]+', '', text)
+        # Clean repetitive punctuation and normalize whitespace
+        cleaned = re.sub(r'[?\'!]{2,}', ' ', cleaned)
+        cleaned = re.sub(r'\s+', ' ', cleaned)
+        return cleaned.strip()
 
     def _build_system_prompt(self) -> str:
         return """You are ScriptureRAG, an authoritative AI scholar and spiritual counselor on the 18 Ashtadasha Mahapuranas.
@@ -138,11 +149,9 @@ YOUR CORE MANDATES:
             purana = p.get("purana_name", "Mahapurana")
             story = p.get("story_title", "")
             source = p.get("content_source", "")
-            text = (p.get("text_content") or "").strip()
-            
-            header = f"--- PASSAGE {idx} [{purana} | {story} | {source}] ---"
-            formatted.append(f"{header}\n{text}")
-        return "\n\n".join(formatted)
+            meta_label = f"{purana} | {story}" if story else f"{purana} | {source}"
+            formatted.append(f"[Passage {idx}] Source: {meta_label}\n{self._clean_ocr(p.get('text_content', ''))}\n")
+        return "\n".join(formatted)
 
     def generate_response(
         self,
@@ -180,7 +189,7 @@ Please synthesize an authentic, citation-backed response to the user's query bas
 
         # Call Gemini if available
         if self.model:
-            for attempt_model in [self.model_name, "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]:
+            for attempt_model in [self.model_name, "models/gemini-3.6-flash", "gemini-3.6-flash", "models/gemini-flash-latest"]:
                 try:
                     active_m = genai.GenerativeModel(attempt_model)
                     full_prompt = f"{self._build_system_prompt()}\n\n{user_prompt}"
@@ -198,9 +207,9 @@ Please synthesize an authentic, citation-backed response to the user's query bas
                 except Exception as e:
                     print(f"[LLMEngine] Error with {attempt_model}: {e}")
 
-        # Rich Structured Fallback if all API calls fail
-        p1 = retrieved_passages[0].get('text_content', '')
-        p2 = retrieved_passages[1].get('text_content', '') if len(retrieved_passages) > 1 else ""
+        # Clean structured Fallback if all API calls fail or API key is not configured
+        p1 = self._clean_ocr(retrieved_passages[0].get('text_content', ''))
+        p2 = self._clean_ocr(retrieved_passages[1].get('text_content', '')) if len(retrieved_passages) > 1 else ""
         
         fallback_text = (
             f"### Authentic Puranic Counsel\n\n"
