@@ -80,7 +80,7 @@ class ScriptureLLMEngine:
     Enforces verse citations and zero-hallucination guardrails.
     """
 
-    DEFAULT_MODEL = "models/gemini-3.6-flash"
+    DEFAULT_MODEL = "models/gemini-flash-latest"
 
     def __init__(self, model_name: str = DEFAULT_MODEL):
         self.api_key = get_gemini_api_key()
@@ -91,13 +91,13 @@ class ScriptureLLMEngine:
             try:
                 genai.configure(api_key=self.api_key)
                 
-                # Active production candidates in priority order
+                # High-capacity production candidates in priority order
                 preferred_models = [
-                    "models/gemini-3.6-flash",
-                    "gemini-3.6-flash",
                     "models/gemini-flash-latest",
-                    "gemini-flash-latest",
-                    "models/gemini-pro-latest"
+                    "models/gemini-flash-lite-latest",
+                    "models/gemini-3.1-flash-lite",
+                    "models/gemini-3.6-flash",
+                    "gemini-flash-latest"
                 ]
 
                 # Handshake test to find the working model
@@ -113,7 +113,7 @@ class ScriptureLLMEngine:
                         continue
 
                 if not self.model:
-                    self.model_name = "models/gemini-3.6-flash"
+                    self.model_name = "models/gemini-flash-latest"
                     self.model = genai.GenerativeModel(self.model_name)
                     print(f"[LLMEngine] Connected to default model: {self.model_name}")
 
@@ -206,7 +206,7 @@ Please synthesize an authentic, citation-backed response based on the scripture 
 
         # Call Gemini if available
         if self.model:
-            for attempt_model in [self.model_name, "models/gemini-3.6-flash", "gemini-3.6-flash", "models/gemini-flash-latest"]:
+            for attempt_model in [self.model_name, "models/gemini-flash-latest", "models/gemini-flash-lite-latest", "models/gemini-3.1-flash-lite"]:
                 try:
                     active_m = genai.GenerativeModel(attempt_model)
                     full_prompt = f"{self._build_system_prompt()}\n\n{user_prompt}"

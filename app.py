@@ -106,9 +106,9 @@ with st.sidebar:
     st.markdown("#### 📏 Answer Length")
     response_mode = st.radio(
         "Choose answer depth:",
-        options=["Short (Concise Summary)", "Detailed (Full Counsel & Evidence)"],
+        options=["Detailed (Full Counsel & Evidence)", "Short (Concise Summary)"],
         index=0,
-        help="Select whether you prefer a quick summary or an in-depth spiritual explanation."
+        help="Select whether you prefer an in-depth spiritual explanation or a quick summary."
     )
     is_short = "Short" in response_mode
 
@@ -143,8 +143,8 @@ if user_query:
                 import re
                 q_clean = user_query.strip().lower()
 
-                # Handle Greetings & Introductions naturally
-                name_match = re.search(r'\b(?:my name is|my name|i am|call me)\s+([a-zA-Z]+)', user_query, re.IGNORECASE)
+                # Handle Greetings & Introductions naturally (e.g. "Hi I'm Surya", "my name is Nilay")
+                name_match = re.search(r'\b(?:my name is|my name|i am|i\'m|im|call me)\s+([a-zA-Z]+)', user_query, re.IGNORECASE)
                 if name_match and len(q_clean.split()) <= 5:
                     user_name = name_match.group(1).capitalize()
                     greeting_resp = (
