@@ -58,7 +58,7 @@ class ScriptureOutputGuardrail:
     FAITHFULNESS_THRESHOLD = 0.85
     RELEVANCE_THRESHOLD = 0.80
 
-    def __init__(self, model_name: str = "gemini-3.6-flash"):
+    def __init__(self, model_name: str = "models/gemini-flash-latest"):
         self.api_key = get_gemini_api_key()
         self.model = None
         self.model_name = model_name

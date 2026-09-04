@@ -97,21 +97,17 @@ with st.spinner("🕉️ Initializing ScriptureRAG knowledge base..."):
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Sidebar for Controls
+# Sidebar
 with st.sidebar:
     st.markdown("### 🕉️ ScriptureRAG")
     st.markdown("Vedic wisdom grounded in the 18 Ashtadasha Mahapuranas.")
     
     st.markdown("---")
-    st.markdown("#### 📏 Answer Length")
-    response_mode = st.radio(
-        "Choose answer depth:",
-        options=["Detailed (Full Counsel & Evidence)", "Short (Concise Summary)"],
-        index=0,
-        help="Select whether you prefer an in-depth spiritual explanation or a quick summary."
+    st.markdown(
+        "💡 **Smart Length:**\n"
+        "- Default: Crisp **5 to 7 lines** explanation.\n"
+        "- Need more? Ask with *'in detail'* or *'long explanation'*!"
     )
-    is_short = "Short" in response_mode
-
     st.markdown("---")
     if st.button("➕ New Chat", use_container_width=True):
         st.session_state.messages = []
@@ -142,6 +138,17 @@ if user_query:
             try:
                 import re
                 q_clean = user_query.strip().lower()
+
+                # Smart Length Auto-detection:
+                # Default is always crisp 5 to 7 lines explanation.
+                # Only if user explicitly requests detail/depth, switch to long explanation.
+                long_triggers = [
+                    "detail", "detailed", "in detail", "in-depth", "indepth", "elaborate", 
+                    "long explanation", "long answer", "explain deeply", "deep dive", 
+                    "full explanation", "comprehensive", "everything about", "long"
+                ]
+                wants_long = any(re.search(rf"\b{re.escape(trigger)}\b", q_clean) for trigger in long_triggers)
+                is_short = not wants_long
 
                 # Handle Greetings & Introductions naturally (e.g. "Hi I'm Surya", "my name is Nilay")
                 name_match = re.search(r'\b(?:my name is|my name|i am|i\'m|im|call me)\s+([a-zA-Z]+)', user_query, re.IGNORECASE)
@@ -175,41 +182,41 @@ if user_query:
                         # Stage 2: Query Expansion
                         expanded = pipeline["processor"].process_query(user_query)
 
-                    # Stage 3: Vector Search (across all 10,582 chunks)
-                    candidates = pipeline["vector_db"].search(
-                        query=expanded.expanded_query,
-                        top_k=6
-                    )
+                        # Stage 3: Vector Search (across all 10,582 chunks)
+                        candidates = pipeline["vector_db"].search(
+                            query=expanded.expanded_query,
+                            top_k=6
+                        )
 
-                    # Stage 4: Cross-Encoder Re-Ranking
-                    top_passages = pipeline["reranker"].rerank(
-                        query=user_query,
-                        retrieved_docs=candidates,
-                        top_k=3
-                    )
+                        # Stage 4: Cross-Encoder Re-Ranking
+                        top_passages = pipeline["reranker"].rerank(
+                            query=user_query,
+                            retrieved_docs=candidates,
+                            top_k=3
+                        )
 
-                    # Stage 5: Grounded LLM Generation
-                    llm_res = pipeline["llm"].generate_response(
-                        query=user_query,
-                        retrieved_passages=top_passages,
-                        is_short=is_short
-                    )
+                        # Stage 5: Grounded LLM Generation
+                        llm_res = pipeline["llm"].generate_response(
+                            query=user_query,
+                            retrieved_passages=top_passages,
+                            is_short=is_short
+                        )
 
-                    # Stage 6: Output Guardrail Validation
-                    val_report = pipeline["validator"].validate_output(
-                        query=user_query,
-                        response_text=llm_res["response_text"],
-                        retrieved_passages=top_passages
-                    )
+                        # Stage 6: Output Guardrail Validation
+                        val_report = pipeline["validator"].validate_output(
+                            query=user_query,
+                            response_text=llm_res["response_text"],
+                            retrieved_passages=top_passages
+                        )
 
-                    # Output Response
-                    st.markdown(val_report.sanitized_response)
+                        # Output Response
+                        st.markdown(val_report.sanitized_response)
 
-                    # Save to History
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": val_report.sanitized_response
-                    })
+                        # Save to History
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": val_report.sanitized_response
+                        })
             except Exception as err:
                 err_msg = f"An error occurred while processing your query: `{str(err)}`"
                 st.error(err_msg)

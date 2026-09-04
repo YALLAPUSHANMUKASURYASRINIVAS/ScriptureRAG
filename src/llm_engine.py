@@ -157,11 +157,11 @@ YOUR CORE MANDATES:
         self,
         query: str,
         retrieved_passages: List[Dict[str, Any]],
-        is_short: bool = False
+        is_short: bool = True
     ) -> Dict[str, Any]:
         """
         Generates grounded LLM response with citations.
-        Supports both short concise summaries and detailed full counsel.
+        Supports both short concise summaries (default 5-7 lines) and detailed full counsel.
         """
         if not retrieved_passages:
             return {
@@ -183,10 +183,11 @@ YOUR CORE MANDATES:
 
         if is_short:
             length_instruction = (
-                "STYLE INSTRUCTION: Provide a SHORT, CONCISE answer (2-3 concise paragraphs or bullet points). "
-                "Explain the core essence clearly and directly. Include brief scripture citations in brackets."
+                "STYLE INSTRUCTION: Provide a crisp, direct, and informative explanation in exactly 5 to 7 lines (or sentences). "
+                "Directly explain the subject and its core essence in authentic plain English without unnecessary conversational fluff. "
+                "Include scripture citations in brackets [e.g. Agni Purana]."
             )
-            max_tokens = 600
+            max_tokens = 500
         else:
             length_instruction = (
                 "STYLE INSTRUCTION: Provide a DETAILED, COMPREHENSIVE spiritual counsel structured in 3 sections: "
